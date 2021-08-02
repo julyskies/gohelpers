@@ -22,6 +22,10 @@ go get github.com/julyskies/gohelpers
 
   This helper function returns an array of values as strings. These values are taken from the provided  `struct`. Behaviour is similar to the `Object.values()` from JS.
 
+- `RandomString(length int) string`
+
+  This helper function returns a random alphanumeric string of the provided length.
+
 ### Example
 
 ```go
@@ -45,9 +49,11 @@ func example() {
   includesInt := gohelpers.IncludesInt(arrayOfInts, 8) // false
   includesString := gohelpers.IncludesString(arrayOfStrings, "a") // true
   values := gohelpers.ObjectValues(animals) // ["elephant", "hippo", "lion"]
+
+  randomString := gohelpers.RandomString(8) // A9is5Try
 }
 ```
 
 ### License
 
-[MIT](./LICENSE)
+[MIT](./LICENSE.md)
