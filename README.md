@@ -18,6 +18,10 @@ go get github.com/julyskies/gohelpers
 
   This helper function returns a boolean value if array of `string` values contains a specified `string` value.
 
+- `MakeTimestamp() int64`
+
+  This helper function returns a UNIX timestamp.
+
 - `ObjectValues(object interface{}) []string`
 
   This helper function returns an array of values as strings. These values are taken from the provided  `struct`. Behaviour is similar to the `Object.values()` from JS.
@@ -51,6 +55,8 @@ func example() {
   values := gohelpers.ObjectValues(animals) // ["elephant", "hippo", "lion"]
 
   randomString := gohelpers.RandomString(8) // A9is5Try
+
+  timestamp := gohelpers.MakeTimestamp() // 1627987461201
 }
 ```
 

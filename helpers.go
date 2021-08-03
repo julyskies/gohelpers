@@ -25,6 +25,10 @@ func IncludesString(array []string, value string) bool {
 	return false
 }
 
+func MakeTimestamp() int64 {
+	return time.Now().UnixNano() / int64(time.Millisecond)
+}
+
 func ObjectValues(object interface{}) []string {
 	var list []string
 	elements := reflect.ValueOf(object)
