@@ -1,6 +1,8 @@
 ## gohelpers
 
-This repository contains helper functions for Golang applications.
+This package contains helper functions for Golang applications.
+
+Minimal required Golang version: **1.16**
 
 ### Install
 
@@ -20,7 +22,11 @@ go get github.com/julyskies/gohelpers
 
 - `MakeTimestamp() int64`
 
-  This helper function returns a UNIX timestamp.
+  This helper function returns a UNIX timestamp in milliseconds.
+
+- `MakeTimestampSeconds() int64`
+
+  This helper function returns a UNIX timestamp in seconds.
 
 - `ObjectValues(object interface{}) []string`
 
@@ -51,13 +57,27 @@ func example() {
   }
 
   includesInt := gohelpers.IncludesInt(arrayOfInts, 8) // false
+
   includesString := gohelpers.IncludesString(arrayOfStrings, "a") // true
+  
   values := gohelpers.ObjectValues(animals) // ["elephant", "hippo", "lion"]
 
   randomString := gohelpers.RandomString(8) // A9is5Try
 
-  timestamp := gohelpers.MakeTimestamp() // 1627987461201
+  timestampMS := gohelpers.MakeTimestamp() // 1627987461201
+
+  timestampSeconds := gohelpers.MakeTimestampSeconds() // 1713957122
 }
+```
+
+### Testing
+
+Tests are located in [`helpers_test.go`](./helpers_test.go)
+
+Run tests:
+
+```shell script
+go test
 ```
 
 ### License
