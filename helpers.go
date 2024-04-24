@@ -7,6 +7,7 @@ import (
 	"time"
 )
 
+// Check if provided int array includes specified int value
 func IncludesInt(array []int, value int) bool {
 	for _, element := range array {
 		if element == value {
@@ -16,6 +17,7 @@ func IncludesInt(array []int, value int) bool {
 	return false
 }
 
+// Check if provided string array includes specified string value
 func IncludesString(array []string, value string) bool {
 	for _, element := range array {
 		if element == value {
@@ -25,10 +27,17 @@ func IncludesString(array []string, value string) bool {
 	return false
 }
 
+// Create a UNIX timestamp in milliseconds (13 digits)
 func MakeTimestamp() int64 {
 	return time.Now().UnixNano() / int64(time.Millisecond)
 }
 
+// Create a UNIX timestamp in seconds (10 digits)
+func MakeTimestampSeconds() int64 {
+	return time.Now().Unix()
+}
+
+// Get an array of string values from struct keys (similar to Object.values() in JS)
 func ObjectValues(object interface{}) []string {
 	var list []string
 	elements := reflect.ValueOf(object)
@@ -44,6 +53,7 @@ func ObjectValues(object interface{}) []string {
 	return list
 }
 
+// Create a random alphanumeric string with specified length
 func RandomString(length int) string {
 	if length <= 0 {
 		return ""
