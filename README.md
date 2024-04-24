@@ -70,6 +70,16 @@ func example() {
 }
 ```
 
+### Testing
+
+Tests are located in [`helpers_test.go`](./helpers_test.go)
+
+Run tests:
+
+```shell script
+go test
+```
+
 ### License
 
 [MIT](./LICENSE.md)
