@@ -59,6 +59,32 @@ func TestMakeTimestampSeconds(t *testing.T) {
 	}
 }
 
+func TestObjectKeys(t *testing.T) {
+	var testStruct objectKeysTestStruct
+
+	keys, keysError := ObjectKeys("invalid argument")
+	if keysError == nil {
+		t.Error("invalid handling of the wrong argument type")
+	}
+	if keysError.Error() != OBJECT_KEYS_TYPE_ERROR {
+		t.Error("invalid error message when providing the wrong argument type")
+	}
+	if keys != nil {
+		t.Error("invalid returned value when providing the wrong argument type")
+	}
+
+	keys, keysError = ObjectKeys(testStruct)
+	if keysError != nil {
+		t.Error("invalid error when providing correct argument")
+	}
+	if len(keys) != 2 {
+		t.Error("invalid resulting slice length")
+	}
+	if IncludesString(keys, "method") {
+		t.Error("should not include method names")
+	}
+}
+
 func TestObjectValues(t *testing.T) {
 	type Animals struct {
 		Elephant string

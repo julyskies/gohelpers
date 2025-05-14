@@ -1,6 +1,7 @@
 package gohelpers
 
 import (
+	"errors"
 	"fmt"
 	"math/rand"
 	"reflect"
@@ -37,14 +38,29 @@ func MakeTimestampSeconds() int64 {
 	return time.Now().Unix()
 }
 
-// Get an array of string values from struct keys (similar to Object.values() in JS)
+// Get an array (slice) of struct key names (similar to Object.keys() in JS).
+// Works only for structs.
+func ObjectKeys(object interface{}) ([]string, error) {
+	reflected := reflect.TypeOf(object)
+	if reflected.Kind() != reflect.Struct {
+		return nil, errors.New(OBJECT_KEYS_TYPE_ERROR)
+	}
+	keys := make([]string, reflected.NumField())
+	for i := 0; i < reflected.NumField(); i += 1 {
+		keys[i] = reflected.Field(i).Name
+	}
+	return keys, nil
+}
+
+// Get an array (slice) of string values from struct keys (similar to Object.values() in JS).
+// Works only for structs.
 func ObjectValues(object interface{}) []string {
 	var list []string
 	elements := reflect.ValueOf(object)
 
 	// if its a pointer, resolve its value
 	if elements.Kind() == reflect.Ptr {
-		elements = reflect.Indirect(elements)
+		elements = reflect.Indirect(elements) // TODO: coverage
 	}
 
 	for i := 0; i < elements.NumField(); i++ {
