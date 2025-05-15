@@ -39,19 +39,21 @@ func MakeTimestampSeconds() int64 {
 	return time.Now().Unix()
 }
 
-// This is an alias for StructKeys function.
+// This is an alias for StructFields function.
 // Get a slice of struct field names (for both public and private fields).
 // This function is similar to Object.keys() in Javascript.
 // Method names are not included.
+// Embedded field names are not included.
 // Works only for structs.
 func ObjectKeys(value interface{}) ([]string, error) {
 	return StructFields(value)
 }
 
-// This is an alias for StructKeysJson function.
+// This is an alias for StructFieldsJson function.
 // Get a slice of struct JSON field tags (for both public and private fields).
 // This function is similar to Object.keys() in Javascript.
 // Method names are not included.
+// Embedded field names are not included.
 // Works only for structs.
 func ObjectKeysJson(value interface{}, params StructKeysJsonParams) ([]string, error) {
 	return StructFieldsJson(value, params)
@@ -80,14 +82,15 @@ func RandomString(length int) string {
 	return string(accumulator)
 }
 
-// Get an array (slice) of struct field names (both public and private).
+// Get a slice of struct field names (for both public and private fields).
 // This function is similar to Object.keys() in Javascript.
 // Method names are not included.
+// Embedded field names are not included.
 // Works only for structs.
 func StructFields(value interface{}) ([]string, error) {
 	reflected := reflect.TypeOf(value)
 	if reflected.Kind() != reflect.Struct {
-		return nil, errors.New(objectKeysTypeError)
+		return nil, errors.New(structFieldsTypeError)
 	}
 	keys := make([]string, reflected.NumField())
 	for i := 0; i < reflected.NumField(); i += 1 {
@@ -99,12 +102,14 @@ func StructFields(value interface{}) ([]string, error) {
 // Get a slice of struct JSON field tags (for both public and private fields).
 // This function is similar to Object.keys() in Javascript.
 // Method names are not included.
+// Embedded field names are not included.
 // Works only for structs.
 func StructFieldsJson(object interface{}, params StructKeysJsonParams) ([]string, error) {
 	reflected := reflect.TypeOf(object)
 	if reflected.Kind() != reflect.Struct {
-		return nil, errors.New(objectKeysTypeError)
+		return nil, errors.New(structFieldsTypeError)
 	}
+
 	var keys []string
 	for i := 0; i < reflected.NumField(); i += 1 {
 		jsonTag := reflected.Field(i).Tag.Get("json")

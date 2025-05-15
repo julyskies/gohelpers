@@ -6,6 +6,49 @@ import (
 	"time"
 )
 
+type animalsStruct struct {
+	Elephant string
+	Hippo    string
+	Lion     string
+}
+
+type testStructFields struct {
+	Public  string
+	private string
+}
+
+func (obj testStructFields) testMethod() string {
+	return obj.Public + obj.private
+}
+
+type testStructFieldsEmbedding struct {
+	testStructFields
+	A int
+	B string
+}
+
+type testStructFieldsJson struct {
+	Comma                int `json:","`
+	Empty                int `json:""`
+	Ignored              int `json:"-"`
+	Missing              int
+	EmptyWithOmitempty   int `json:",omitempty"`
+	IgonredWithOmitempty int `json:"-,omitempty"`
+	NormalField          int `json:"normalField"`
+	private              int `json:"private"`
+	privateWithOmitempty int `json:"privateWithOmitempty,omitempty"`
+}
+
+func (obj testStructFieldsJson) testMethod() int {
+	return obj.NormalField + obj.private
+}
+
+type testStructFieldsJsonEmbedding struct {
+	testStructFields
+	A int
+	B string
+}
+
 func TestIncludesInt(t *testing.T) {
 	arrayOfInts := []int{1, 2, 3, 4, 9}
 
@@ -64,46 +107,59 @@ func TestObjectKeys(t *testing.T) {
 	if keysError == nil {
 		t.Error("invalid handling of the wrong argument type")
 	}
-	if keysError.Error() != objectKeysTypeError {
+	if keysError.Error() != structFieldsTypeError {
 		t.Error("invalid error message when providing the wrong argument type")
 	}
 	if keys != nil {
 		t.Error("invalid returned value when providing the wrong argument type")
 	}
 
-	var testStruct objectKeysTestStruct
-
-	keys, keysError = ObjectKeys(testStruct)
+	keys, keysError = ObjectKeys(testStructFields{})
 	if keysError != nil {
 		t.Error("invalid error when providing correct argument")
 	}
 	if len(keys) != 2 {
 		t.Error("invalid resulting slice length")
 	}
-	if IncludesString(keys, "method") {
+	if IncludesString(keys, "testMethod") {
 		t.Error("should not include method names")
+	}
+
+	keys, keysError = ObjectKeys(testStructFieldsEmbedding{})
+	if keysError != nil {
+		t.Error("invalid error when providing correct argument")
+	}
+	if len(keys) != 3 {
+		t.Error("invalid resulting slice length")
+	}
+	if !IncludesString(keys, "testStructFields") {
+		t.Error("resulting slice should contain the name of the embedded struct as an entry")
+	}
+	if IncludesString(keys, "Public") || IncludesString(keys, "private") {
+		t.Error("resulting slice should not contain any embedded struct field names")
 	}
 }
 
+// TODO: finish this after completing TestStructFieldsJson
 func TestObjectKeysJson(t *testing.T) {
 	keys, keysError := ObjectKeysJson("invalid argument", DefaultStructKeysJsonParams)
 	if keysError == nil {
 		t.Error("invalid handling of the wrong argument type")
 	}
-	if keysError.Error() != objectKeysTypeError {
+	if keysError.Error() != structFieldsTypeError {
 		t.Error("invalid error message when providing the wrong argument type")
 	}
 	if keys != nil {
 		t.Error("invalid returned value when providing the wrong argument type")
 	}
 
-	var testStruct objectKeysJsonTestStruct
+	var testStruct testStructFieldsJson
 
 	keys, keysError = ObjectKeysJson(testStruct, DefaultStructKeysJsonParams)
 }
 
 func TestObjectValues(t *testing.T) {
-	animals := animals{
+	animals := animalsStruct{
 		Elephant: "elephant",
 		Hippo:    "hippo",
 		Lion:     "lion",
@@ -141,42 +197,55 @@ func TestStructFields(t *testing.T) {
 	if fieldsError == nil {
 		t.Error("invalid handling of the wrong argument type")
 	}
-	if fieldsError.Error() != objectKeysTypeError {
+	if fieldsError.Error() != structFieldsTypeError {
 		t.Error("invalid error message when providing the wrong argument type")
 	}
 	if fields != nil {
 		t.Error("invalid returned value when providing the wrong argument type")
 	}
 
-	var testStruct objectKeysTestStruct
-
-	fields, fieldsError = StructFields(testStruct)
+	fields, fieldsError = StructFields(testStructFields{})
 	if fieldsError != nil {
 		t.Error("invalid error when providing correct argument")
 	}
 	if len(fields) != 2 {
 		t.Error("invalid resulting slice length")
 	}
-	if IncludesString(fields, "method") {
+	if IncludesString(fields, "testMethod") {
 		t.Error("should not include method names")
+	}
+
+	fields, fieldsError = StructFields(testStructFieldsEmbedding{})
+	if fieldsError != nil {
+		t.Error("invalid error when providing correct argument")
+	}
+	if len(fields) != 3 {
+		t.Error("invalid resulting slice length")
+	}
+	if !IncludesString(fields, "testStructFields") {
+		t.Error("resulting slice should contain the name of the embedded struct as an entry")
+	}
+	if IncludesString(fields, "Public") || IncludesString(fields, "private") {
+		t.Error("resulting slice should not contain any embedded struct field names")
 	}
 }
 
 func TestStructFieldsJson(t *testing.T) {
+	// testing with invalid argument type
 	fields, fieldsError := StructFieldsJson("invalid argument", DefaultStructKeysJsonParams)
 	if fieldsError == nil {
 		t.Error("invalid handling of the wrong argument type")
 	}
-	if fieldsError.Error() != objectKeysTypeError {
+	if fieldsError.Error() != structFieldsTypeError {
 		t.Error("invalid error message when providing the wrong argument type")
 	}
 	if fields != nil {
 		t.Error("invalid returned value when providing the wrong argument type")
 	}
 
-	var testStruct objectKeysJsonTestStruct
-
-	fields, fieldsError = StructFieldsJson(testStruct, DefaultStructKeysJsonParams)
+	// testing with default params: do not skip ignored tags & replace missing tags with field names
+	params := StructKeysJsonParams{true, true}
+	fields, fieldsError = StructFieldsJson(testStructFieldsJson{}, params)
 	if fieldsError != nil {
 		t.Error("invalid error when providing correct arguments")
 	}
@@ -184,16 +253,17 @@ func TestStructFieldsJson(t *testing.T) {
 		t.Error("resulting slice should not be empty when using default params")
 	}
 
-	params := StructKeysJsonParams{
+	// testing with non-default params: skip ignored tags & replace missing tags with field names
+	params = StructKeysJsonParams{
 		ReplaceIgnoredFieldsWithFieldNames: false,
 		ReplaceMissingTagsWithFieldNames:   true,
 	}
-	fields, fieldsError = StructFieldsJson(testStruct, params)
+	fields, fieldsError = StructFieldsJson(testStructFieldsJson{}, params)
 	if fieldsError != nil {
 		t.Error("invalid error when providing correct arguments")
 	}
 	if IncludesString(fields, "Ignored") {
-		t.Error("resulting slice contains field name that should be ignored according to params")
+		t.Error("resulting slice contains field name that should be skipped according to params")
 	}
 	if IncludesString(fields, "IgnoredWithOmitempty") {
 		t.Error("resulting slice contains field name that should be ignored according to params")
@@ -203,7 +273,7 @@ func TestStructFieldsJson(t *testing.T) {
 	}
 
 	params = StructKeysJsonParams{false, false}
-	fields, fieldsError = StructFieldsJson(testStruct, params)
+	fields, fieldsError = StructFieldsJson(testStructFieldsJson{}, params)
 	if fieldsError != nil {
 		t.Error("invalid error when providing correct argument type")
 	}
@@ -217,7 +287,7 @@ func TestStructFieldsJson(t *testing.T) {
 }
 
 func TestStructValues(t *testing.T) {
-	animals := animals{
+	animals := animalsStruct{
 		Elephant: "elephant",
 		Hippo:    "hippo",
 		Lion:     "lion",

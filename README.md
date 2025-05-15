@@ -124,13 +124,13 @@ go get github.com/julyskies/gohelpers
   **Example:**
 
   ```go
-  type animals struct {
+  type animalsStruct struct {
     Elephant string
     Hippo    string
     Lion     string
   }
 
-  animals := animals{
+  animals := animalsStruct{
     Elephant: "elephant",
     Hippo: "hippo",
     Lion: "lion",
