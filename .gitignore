@@ -2,4 +2,4 @@
 .env
 
 # Directories
-./tests
+tests/

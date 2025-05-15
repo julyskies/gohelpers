@@ -2,7 +2,7 @@
 
 This package contains helper functions for Golang applications.
 
-Minimal required Golang version: **1.16**
+Minimal required Golang version: **`v1.16`**.
 
 ### Install
 
@@ -12,63 +12,150 @@ go get github.com/julyskies/gohelpers
 
 ### Available helper functions
 
-- `IncludesInt(array []int, value int) bool`
+- **`IncludesInt(slice []int, value int) bool`**
 
-  This helper function returns a boolean value if array of `int` values contains a specified `int` value.
+  This helper function returns a boolean value if a slice of `int` values contains a specified `int` value.
 
-- `IncludesString(array []string, value string) bool`
+  **Example:**
 
-  This helper function returns a boolean value if array of `string` values contains a specified `string` value.
+  ```go
+  slice := []int{1, 2, 4, 9}
+  result := gohelpers.IncludesInt(slice, 8)
+  fmt.Println(result) // false
+  ```
 
-- `MakeTimestamp() int64`
+- **`IncludesString(slice []string, value string) bool`**
+
+  This helper function returns a boolean value if slice of `string` values contains a specified `string` value.
+
+  **Example:**
+
+  ```go
+  slice := []string{"a", "b", "c"}
+  result := gohelpers.IncludesString(slice, "a")
+  fmt.Println(result) // true
+  ```
+
+- **`MakeTimestamp() int64`**
 
   This helper function returns a UNIX timestamp in milliseconds.
 
-- `MakeTimestampSeconds() int64`
+  **Example:**
+
+  ```go
+  timestamp := gohelpers.MakeTimestamp()
+  fmt.Println(timestamp) // 1627987461201
+  ```
+
+- **`MakeTimestampSeconds() int64`**
 
   This helper function returns a UNIX timestamp in seconds.
 
-- `ObjectValues(object interface{}) []string`
+    **Example:**
 
-  This helper function returns an array of values as strings. These values are taken from the provided  `struct`. Behaviour is similar to the `Object.values()` from JS.
+  ```go
+  timestamp := gohelpers.MakeTimestampSeconds()
+  fmt.Println(timestamp) // 1713957122
+  ```
 
-- `RandomString(length int) string`
+- **`RandomString(length int) string`**
 
   This helper function returns a random alphanumeric string of the provided length.
 
-### Example
+  **Example:**
 
-```go
-import "github.com/julyskies/gohelpers"
+  ```go
+  randomString := gohelpers.RandomString(8)
+  fmt.Println(randomString) // A9is5Try
+  ```
 
-type Animals struct {
-  Elephant string
-  Hippo    string
-  Lion     string
-}
+- **`StructFields(value interface{}) ([]string, error)`**
 
-func example() {
-  arrayOfInts := []int{1, 2, 3, 4, 9}
-  arrayOfStrings := []string{"a", "b", "c"}
-  animals := Animals{
+  This helper function returns a slice of struct field names (similar to `Object.keys()` in Javascript). Method names are not included. The `value` argument should be a struct. Both public and private struct field names are returned. `ObjectKeys` is an alias for this function.
+
+  Please notice: this function will not return embedded field names (i. e. field names from the embedded structs).
+
+  **Example:**
+
+  ```go
+  type SomeStruct struct {
+    A       int
+    B       string
+    private bool
+    Public  int
+  }
+  fields, _ := gohelpers.StructFields(SomeStruct{})
+  fmt.Println(fields) // [A B private Public]
+
+  // working with embedding is not supported
+  type Embedding struct {
+    SomeStruct
+    J int
+    K string
+  }
+  fields, _ = gohelpers.StructFields(Embedding{})
+  fmt.Println(fields) // [SomeStruct J K]
+
+  // handling an error
+  result, err := gohelpers.StructFields("invalid argument type")
+  if err != nil {
+    fmt.Println(err.Error()) // provided argument type is not a struct
+    fmt.Println(result) // nil
+  }
+  ```
+
+- **`StructFieldsJson(value interface{}, params gohelpers.StructKeysJsonParams) ([]string, error)`**
+
+  This helper function returns a slice of struct JSON field tags (similar to `Object.keys()` in Javascript). Method names are not included. The `value` argument should be a struct. Both public and private struct JSON field tags are returned.
+
+  A second argument is required for this function, it should be `gohelpers.StructKeysJsonParams` struct, where you can specify the following:
+
+  ```go
+  type StructKeysJsonParams struct {
+	  ReplaceIgnoredFieldsWithFieldNames bool
+	  ReplaceMissingTagsWithFieldNames   bool
+  }
+  ```
+
+- **`StructValues(value interface{}) []string`**
+
+  This helper function returns an array of values as strings. These values are taken from the provided  `struct`. Behaviour is similar to the `Object.values()` from JS. `ObjectValues` is an alias for this function.
+
+  **Example:**
+
+  ```go
+  type animals struct {
+    Elephant string
+    Hippo    string
+    Lion     string
+  }
+
+  animals := animals{
     Elephant: "elephant",
     Hippo: "hippo",
     Lion: "lion",
   }
 
-  includesInt := gohelpers.IncludesInt(arrayOfInts, 8) // false
+  values := gohelpers.StructValues(animals)
+  fmt.Println(values) // ["elephant", "hippo", "lion"]
+  ```
 
-  includesString := gohelpers.IncludesString(arrayOfStrings, "a") // true
-  
-  values := gohelpers.ObjectValues(animals) // ["elephant", "hippo", "lion"]
+### Aliases
 
-  randomString := gohelpers.RandomString(8) // A9is5Try
+Aliases are added for compatibility.
 
-  timestampMS := gohelpers.MakeTimestamp() // 1627987461201
+- **`ObjectKeys(value interface{}) ([]string, error)`**
 
-  timestampSeconds := gohelpers.MakeTimestampSeconds() // 1713957122
-}
-```
+  This is an alias for `StructFields` function.
+
+- **`ObjectKeysJson(value interface{}, params gohelpers.StructKeysJsonParams) ([]string, error)`**
+
+  This is an alias for `StructFieldsJson` function.
+
+- **`ObjectValues(value interface{}) []string`**
+
+  This is an alias for `StructValues` function.
+
 
 ### Testing
 

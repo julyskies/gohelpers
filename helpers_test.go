@@ -60,18 +60,18 @@ func TestMakeTimestampSeconds(t *testing.T) {
 }
 
 func TestObjectKeys(t *testing.T) {
-	var testStruct objectKeysTestStruct
-
 	keys, keysError := ObjectKeys("invalid argument")
 	if keysError == nil {
 		t.Error("invalid handling of the wrong argument type")
 	}
-	if keysError.Error() != OBJECT_KEYS_TYPE_ERROR {
+	if keysError.Error() != objectKeysTypeError {
 		t.Error("invalid error message when providing the wrong argument type")
 	}
 	if keys != nil {
 		t.Error("invalid returned value when providing the wrong argument type")
 	}
+
+	var testStruct objectKeysTestStruct
 
 	keys, keysError = ObjectKeys(testStruct)
 	if keysError != nil {
@@ -85,14 +85,25 @@ func TestObjectKeys(t *testing.T) {
 	}
 }
 
-func TestObjectValues(t *testing.T) {
-	type Animals struct {
-		Elephant string
-		Hippo    string
-		Lion     string
+func TestObjectKeysJson(t *testing.T) {
+	keys, keysError := ObjectKeysJson("invalid argument", DefaultStructKeysJsonParams)
+	if keysError == nil {
+		t.Error("invalid handling of the wrong argument type")
+	}
+	if keysError.Error() != objectKeysTypeError {
+		t.Error("invalid error message when providing the wrong argument type")
+	}
+	if keys != nil {
+		t.Error("invalid returned value when providing the wrong argument type")
 	}
 
-	animals := Animals{
+	var testStruct objectKeysJsonTestStruct
+
+	keys, keysError = ObjectKeysJson(testStruct, DefaultStructKeysJsonParams)
+}
+
+func TestObjectValues(t *testing.T) {
+	animals := animals{
 		Elephant: "elephant",
 		Hippo:    "hippo",
 		Lion:     "lion",
@@ -122,5 +133,102 @@ func TestRandomString(t *testing.T) {
 	randomString := RandomString(32)
 	if len(randomString) != 32 {
 		t.Error("invalid string length")
+	}
+}
+
+func TestStructFields(t *testing.T) {
+	fields, fieldsError := StructFields("invalid argument")
+	if fieldsError == nil {
+		t.Error("invalid handling of the wrong argument type")
+	}
+	if fieldsError.Error() != objectKeysTypeError {
+		t.Error("invalid error message when providing the wrong argument type")
+	}
+	if fields != nil {
+		t.Error("invalid returned value when providing the wrong argument type")
+	}
+
+	var testStruct objectKeysTestStruct
+
+	fields, fieldsError = StructFields(testStruct)
+	if fieldsError != nil {
+		t.Error("invalid error when providing correct argument")
+	}
+	if len(fields) != 2 {
+		t.Error("invalid resulting slice length")
+	}
+	if IncludesString(fields, "method") {
+		t.Error("should not include method names")
+	}
+}
+
+func TestStructFieldsJson(t *testing.T) {
+	fields, fieldsError := StructFieldsJson("invalid argument", DefaultStructKeysJsonParams)
+	if fieldsError == nil {
+		t.Error("invalid handling of the wrong argument type")
+	}
+	if fieldsError.Error() != objectKeysTypeError {
+		t.Error("invalid error message when providing the wrong argument type")
+	}
+	if fields != nil {
+		t.Error("invalid returned value when providing the wrong argument type")
+	}
+
+	var testStruct objectKeysJsonTestStruct
+
+	fields, fieldsError = StructFieldsJson(testStruct, DefaultStructKeysJsonParams)
+	if fieldsError != nil {
+		t.Error("invalid error when providing correct arguments")
+	}
+	if len(fields) == 0 {
+		t.Error("resulting slice should not be empty when using default params")
+	}
+
+	params := StructKeysJsonParams{
+		ReplaceIgnoredFieldsWithFieldNames: false,
+		ReplaceMissingTagsWithFieldNames:   true,
+	}
+	fields, fieldsError = StructFieldsJson(testStruct, params)
+	if fieldsError != nil {
+		t.Error("invalid error when providing correct arguments")
+	}
+	if IncludesString(fields, "Ignored") {
+		t.Error("resulting slice contains field name that should be ignored according to params")
+	}
+	if IncludesString(fields, "IgnoredWithOmitempty") {
+		t.Error("resulting slice contains field name that should be ignored according to params")
+	}
+	if len(fields) != 7 {
+		t.Error("resulting slice has invalid length")
+	}
+
+	params = StructKeysJsonParams{false, false}
+	fields, fieldsError = StructFieldsJson(testStruct, params)
+	if fieldsError != nil {
+		t.Error("invalid error when providing correct argument type")
+	}
+	if IncludesString(fields, "Ignored") {
+		t.Error("resulting slice contains field name that should be ignored according to params")
+	}
+	if IncludesString(fields, "IgnoredWithOmitempty") {
+		t.Error("resulting slice contains field name that should be ignored according to params")
+	}
+
+}
+
+func TestStructValues(t *testing.T) {
+	animals := animals{
+		Elephant: "elephant",
+		Hippo:    "hippo",
+		Lion:     "lion",
+	}
+
+	values := StructValues(animals)
+	if len(values) != 3 {
+		t.Error("invalid resulting slice length")
+	}
+
+	if !IncludesString(values, "lion") {
+		t.Error("invalid values are included in resulting slice")
 	}
 }
