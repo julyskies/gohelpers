@@ -12,6 +12,12 @@ type animalsStruct struct {
 	Lion     string
 }
 
+type nestedAnimals struct {
+	Cat           string
+	Dog           string
+	AnimalsStruct animalsStruct
+}
+
 type testStructFields struct {
 	Public  string
 	private string
@@ -340,9 +346,40 @@ func TestObjectValues(t *testing.T) {
 	if len(values) != 3 {
 		t.Error("invalid resulting slice length")
 	}
-
 	if !IncludesString(values, "lion") {
 		t.Error("invalid values are included in resulting slice")
+	}
+
+	// pass a pointer
+	values = ObjectValues(&animals)
+	if len(values) != 3 {
+		t.Error("invalid resulting slice length")
+	}
+	if !IncludesString(values, "lion") {
+		t.Error("invalid values are included in resulting slice")
+	}
+
+	moreAnimals := nestedAnimals{
+		AnimalsStruct: animalsStruct{
+			Elephant: "elephant",
+			Hippo:    "hippo",
+			Lion:     "lion",
+		},
+		Cat: "cat",
+		Dog: "dog",
+	}
+	values = ObjectValues(&moreAnimals)
+	if len(values) != 3 {
+		t.Error("invalid resulting slice length")
+	}
+	if !IncludesString(values, "cat") {
+		t.Error("missing values from resulting slice")
+	}
+	if IncludesString(values, "hippo") {
+		t.Error("nested field values should be returned as a single string")
+	}
+	if !IncludesString(values, "{elephant hippo lion}") {
+		t.Error("nested field values should be returned as a single string")
 	}
 }
 
@@ -600,8 +637,39 @@ func TestStructValues(t *testing.T) {
 	if len(values) != 3 {
 		t.Error("invalid resulting slice length")
 	}
-
 	if !IncludesString(values, "lion") {
 		t.Error("invalid values are included in resulting slice")
+	}
+
+	// pass a pointer
+	values = StructValues(&animals)
+	if len(values) != 3 {
+		t.Error("invalid resulting slice length")
+	}
+	if !IncludesString(values, "lion") {
+		t.Error("invalid values are included in resulting slice")
+	}
+
+	moreAnimals := nestedAnimals{
+		AnimalsStruct: animalsStruct{
+			Elephant: "elephant",
+			Hippo:    "hippo",
+			Lion:     "lion",
+		},
+		Cat: "cat",
+		Dog: "dog",
+	}
+	values = StructValues(&moreAnimals)
+	if len(values) != 3 {
+		t.Error("invalid resulting slice length")
+	}
+	if !IncludesString(values, "cat") {
+		t.Error("missing values from resulting slice")
+	}
+	if IncludesString(values, "hippo") {
+		t.Error("nested field values should be returned as a single string")
+	}
+	if !IncludesString(values, "{elephant hippo lion}") {
+		t.Error("nested field values should be returned as a single string")
 	}
 }

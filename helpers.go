@@ -43,7 +43,7 @@ func MakeTimestampSeconds() int64 {
 // Get a slice of struct field names (for both public and private fields).
 // This function is similar to Object.keys() in Javascript.
 // Method names are not included.
-// Embedded field names are not included.
+// Field names of nested structs are not included.
 // Works only for structs.
 func ObjectKeys(value interface{}) ([]string, error) {
 	return StructFields(value)
@@ -53,7 +53,7 @@ func ObjectKeys(value interface{}) ([]string, error) {
 // Get a slice of struct JSON field tags (for both public and private fields).
 // This function is similar to Object.keys() in Javascript.
 // Method names are not included.
-// Embedded field names are not included.
+// Field names of nested structs are not included.
 // Works only for structs.
 func ObjectKeysJson(value interface{}, params StructKeysJsonParams) ([]string, error) {
 	return StructFieldsJson(value, params)
@@ -61,6 +61,7 @@ func ObjectKeysJson(value interface{}, params StructKeysJsonParams) ([]string, e
 
 // This is an alias for StructValues function.
 // Get a slice of string values from struct fields (similar to Object.values() in JS).
+// Nested struct values are returned as a single string.
 // Works only for structs.
 func ObjectValues(value interface{}) []string {
 	return StructValues(value)
@@ -85,7 +86,7 @@ func RandomString(length int) string {
 // Get a slice of struct field names (for both public and private fields).
 // This function is similar to Object.keys() in Javascript.
 // Method names are not included.
-// Embedded field names are not included.
+// Field names of nested structs are not included.
 // Works only for structs.
 func StructFields(value interface{}) ([]string, error) {
 	reflected := reflect.TypeOf(value)
@@ -102,10 +103,10 @@ func StructFields(value interface{}) ([]string, error) {
 // Get a slice of struct JSON field tags (for both public and private fields).
 // This function is similar to Object.keys() in Javascript.
 // Method names are not included.
-// Embedded field names are not included.
+// Field names of nested structs are not included.
 // Works only for structs.
-func StructFieldsJson(object interface{}, params StructKeysJsonParams) ([]string, error) {
-	reflected := reflect.TypeOf(object)
+func StructFieldsJson(value interface{}, params StructKeysJsonParams) ([]string, error) {
+	reflected := reflect.TypeOf(value)
 	if reflected.Kind() != reflect.Struct {
 		return nil, errors.New(structFieldsTypeError)
 	}
@@ -158,6 +159,7 @@ func StructFieldsJson(object interface{}, params StructKeysJsonParams) ([]string
 }
 
 // Get a slice of string values from struct fields (similar to Object.values() in JS).
+// Nested struct values are returned as a single string.
 // Works only for structs.
 func StructValues(value interface{}) []string {
 	var list []string
@@ -165,10 +167,10 @@ func StructValues(value interface{}) []string {
 
 	// if its a pointer, resolve its value
 	if elements.Kind() == reflect.Ptr {
-		elements = reflect.Indirect(elements) // TODO: coverage
+		elements = reflect.Indirect(elements)
 	}
 
-	for i := 0; i < elements.NumField(); i++ {
+	for i := 0; i < elements.NumField(); i += 1 {
 		list = append(list, fmt.Sprintf("%v", elements.Field(i).Interface()))
 	}
 	return list
