@@ -28,15 +28,16 @@ type testStructFieldsEmbedding struct {
 }
 
 type testStructFieldsJson struct {
-	Comma                int `json:","`
-	Empty                int `json:""`
-	Ignored              int `json:"-"`
-	Missing              int
-	EmptyWithOmitempty   int `json:",omitempty"`
-	IgonredWithOmitempty int `json:"-,omitempty"`
-	NormalField          int `json:"normalField"`
-	private              int `json:"private"`
-	privateWithOmitempty int `json:"privateWithOmitempty,omitempty"`
+	Comma                    int `json:","`
+	Empty                    int `json:""`
+	Ignored                  int `json:"-"`
+	Missing                  int
+	EmptyWithOmitempty       int `json:",omitempty"`
+	IgonredWithOmitempty     int `json:"-,omitempty"`
+	NormalField              int `json:"normalField"`
+	NormalFieldWithOmitempty int `json:"normalFieldWithOmitempty,omitempty"`
+	private                  int `json:"private"`
+	privateWithOmitempty     int `json:"privateWithOmitempty,omitempty"`
 }
 
 func (obj testStructFieldsJson) testMethod() int {
@@ -45,8 +46,8 @@ func (obj testStructFieldsJson) testMethod() int {
 
 type testStructFieldsJsonEmbedding struct {
 	testStructFields
-	A int
-	B string
+	A int    `json:"a"`
+	B string `json:"b"`
 }
 
 func TestIncludesInt(t *testing.T) {
@@ -140,22 +141,192 @@ func TestObjectKeys(t *testing.T) {
 	}
 }
 
-// TODO: finish this after completing TestStructFieldsJson
 func TestObjectKeysJson(t *testing.T) {
-	keys, keysError := ObjectKeysJson("invalid argument", DefaultStructKeysJsonParams)
-	if keysError == nil {
+	// testing with invalid argument type
+	fields, fieldsError := ObjectKeysJson("invalid argument", DefaultStructKeysJsonParams)
+	if fieldsError == nil {
 		t.Error("invalid handling of the wrong argument type")
 	}
-	if keysError.Error() != structFieldsTypeError {
+	if fieldsError.Error() != structFieldsTypeError {
 		t.Error("invalid error message when providing the wrong argument type")
 	}
-	if keys != nil {
+	if fields != nil {
 		t.Error("invalid returned value when providing the wrong argument type")
 	}
 
-	var testStruct testStructFieldsJson
+	// testing embedding
+	fields, fieldsError = ObjectKeysJson(
+		testStructFieldsJsonEmbedding{},
+		DefaultStructKeysJsonParams,
+	)
+	if fieldsError != nil {
+		t.Error("invalid error when providing correct arguments")
+	}
+	if len(fields) != 3 {
+		t.Error("invalid resulting slice length when using struct with embedding")
+	}
+	if IncludesString(fields, "normalField") {
+		t.Error("embedded fields should not be present in the resulting slice")
+	}
 
-	keys, keysError = ObjectKeysJson(testStruct, DefaultStructKeysJsonParams)
+	// testing basic functionality regardless of the used params
+	basicFunctionalityTests := func(fields []string, fieldsError error) {
+		if fieldsError != nil {
+			t.Error("invalid error when providing correct arguments")
+		}
+		if len(fields) == 0 {
+			t.Error("resulting slice should not be empty")
+		}
+		if IncludesString(fields, "testMethod") {
+			t.Error("resulting slice should not include method names")
+		}
+		if !IncludesString(fields, "normalField") {
+			t.Error("resulting slice should contain non-private field tags without any modifiers")
+		}
+		if !IncludesString(fields, "normalFieldWithOmitempty") {
+			t.Error(
+				"resulting slice should contain non-private field tags with 'omitempty' modifier",
+			)
+		}
+		if IncludesString(fields, "normalFieldWithOmitempty,omitempty") {
+			t.Error(
+				"the 'omitempty' substring should be removed from the tag string for non-private fields",
+			)
+		}
+		if !IncludesString(fields, "private") {
+			t.Error("resulting slice should contain private field tags or field names")
+		}
+		if !IncludesString(fields, "privateWithOmitempty") {
+			t.Error("resulting slice should contain private field tags with 'omitempty' modifier")
+		}
+		if IncludesString(fields, "privateWithOmitempty,omitempty") {
+			t.Error(
+				"the 'omitempty' substring should be removed from the tag string for private fields",
+			)
+		}
+		if IncludesString(fields, "-") {
+			t.Error("resulting slice should not contain '-' symbol")
+		}
+		if IncludesString(fields, "-,omitempty") {
+			t.Error("resulting slice should not contain '-,omitempty'")
+		}
+		if IncludesString(fields, ",") {
+			t.Error("resulting slice should not contain ',' symbol")
+		}
+		if IncludesString(fields, ",omitempty") {
+			t.Error("resulting slice should not contain ',omitempty'")
+		}
+	}
+
+	// testing with default params: do not skip ignored tags & replace missing tags with field names
+	params := StructKeysJsonParams{true, true}
+	fields, fieldsError = ObjectKeysJson(testStructFieldsJson{}, params)
+	basicFunctionalityTests(fields, fieldsError)
+	if len(fields) != 10 {
+		t.Error("invalid resulting slice length")
+	}
+	if !IncludesString(fields, "Ignored") {
+		t.Error("resulting slice should contain ignored field name")
+	}
+	if !IncludesString(fields, "IgonredWithOmitempty") {
+		t.Error("resulting slice should contain ignored field name even if it has 'omitempty'")
+	}
+	if !IncludesString(fields, "Comma") {
+		t.Error("default field name should be used if JSON tag string is ','")
+	}
+	if !IncludesString(fields, "Empty") {
+		t.Error("default field name should be used if JSON tag is an empty string")
+	}
+	if !IncludesString(fields, "EmptyWithOmitempty") {
+		t.Error("default field name should be used if JSON tag string is ',omitempty'")
+	}
+	if !IncludesString(fields, "Missing") {
+		t.Error("default field name should be used if JSON tag is not set")
+	}
+
+	// testing with non-default params: skip ignored tags & replace missing tags with field names
+	params = StructKeysJsonParams{
+		ReplaceIgnoredFieldsWithFieldNames: false,
+		ReplaceMissingTagsWithFieldNames:   true,
+	}
+	fields, fieldsError = ObjectKeysJson(testStructFieldsJson{}, params)
+	basicFunctionalityTests(fields, fieldsError)
+	if len(fields) != 8 {
+		t.Error("resulting slice has invalid length")
+	}
+	if IncludesString(fields, "Ignored") {
+		t.Error("resulting slice contains field name that should be skipped")
+	}
+	if IncludesString(fields, "IgnoredWithOmitempty") {
+		t.Error("resulting slice contains field name that should be skipped")
+	}
+	if !IncludesString(fields, "Comma") {
+		t.Error("default field name should be used if JSON tag string is ','")
+	}
+	if !IncludesString(fields, "Empty") {
+		t.Error("default field name should be used if JSON tag is an empty string")
+	}
+	if !IncludesString(fields, "EmptyWithOmitempty") {
+		t.Error("default field name should be used if JSON tag string is ',omitempty'")
+	}
+	if !IncludesString(fields, "Missing") {
+		t.Error("default field name should be used if JSON tag is not set")
+	}
+
+	// testing with non-default params: skip ignored tags & skip missing tags
+	params = StructKeysJsonParams{false, false}
+	fields, fieldsError = ObjectKeysJson(testStructFieldsJson{}, params)
+	basicFunctionalityTests(fields, fieldsError)
+	if len(fields) != 4 {
+		t.Error("resulting slice has invalid length")
+	}
+	if IncludesString(fields, "Ignored") {
+		t.Error("resulting slice contains field name that should be skipped")
+	}
+	if IncludesString(fields, "IgnoredWithOmitempty") {
+		t.Error("resulting slice contains field name that should be skipped")
+	}
+	if IncludesString(fields, "Comma") {
+		t.Error("resulting slice contains field name that should be skipped")
+	}
+	if IncludesString(fields, "Empty") {
+		t.Error("resulting slice contains field name that should be skipped")
+	}
+	if IncludesString(fields, "EmptyWithOmitempty") {
+		t.Error("resulting slice contains field name that should be skipped")
+	}
+	if IncludesString(fields, "Missing") {
+		t.Error("resulting slice contains field name that should be skipped")
+	}
+
+	// testing with non-default params: do not skip ignored tags & skip missing tags
+	params = StructKeysJsonParams{
+		ReplaceIgnoredFieldsWithFieldNames: true,
+		ReplaceMissingTagsWithFieldNames:   false,
+	}
+	fields, fieldsError = ObjectKeysJson(testStructFieldsJson{}, params)
+	basicFunctionalityTests(fields, fieldsError)
+	if len(fields) != 6 {
+		t.Error("invalid resulting slice length")
+	}
+	if !IncludesString(fields, "Ignored") {
+		t.Error("resulting slice should contain ignored field name")
+	}
+	if !IncludesString(fields, "IgonredWithOmitempty") {
+		t.Error("resulting slice should contain ignored field name even if it has 'omitempty'")
+	}
+	if IncludesString(fields, "Comma") {
+		t.Error("resulting slice contains field name that should be skipped")
+	}
+	if IncludesString(fields, "Empty") {
+		t.Error("resulting slice contains field name that should be skipped")
+	}
+	if IncludesString(fields, "EmptyWithOmitempty") {
+		t.Error("resulting slice contains field name that should be skipped")
+	}
+	if IncludesString(fields, "Missing") {
+		t.Error("resulting slice contains field name that should be skipped")
+	}
 }
 
 func TestObjectValues(t *testing.T) {
@@ -243,14 +414,94 @@ func TestStructFieldsJson(t *testing.T) {
 		t.Error("invalid returned value when providing the wrong argument type")
 	}
 
-	// testing with default params: do not skip ignored tags & replace missing tags with field names
-	params := StructKeysJsonParams{true, true}
-	fields, fieldsError = StructFieldsJson(testStructFieldsJson{}, params)
+	// testing embedding
+	fields, fieldsError = StructFieldsJson(
+		testStructFieldsJsonEmbedding{},
+		DefaultStructKeysJsonParams,
+	)
 	if fieldsError != nil {
 		t.Error("invalid error when providing correct arguments")
 	}
-	if len(fields) == 0 {
-		t.Error("resulting slice should not be empty when using default params")
+	if len(fields) != 3 {
+		t.Error("invalid resulting slice length when using struct with embedding")
+	}
+	if IncludesString(fields, "normalField") {
+		t.Error("embedded fields should not be present in the resulting slice")
+	}
+
+	// testing basic functionality regardless of the used params
+	basicFunctionalityTests := func(fields []string, fieldsError error) {
+		if fieldsError != nil {
+			t.Error("invalid error when providing correct arguments")
+		}
+		if len(fields) == 0 {
+			t.Error("resulting slice should not be empty")
+		}
+		if IncludesString(fields, "testMethod") {
+			t.Error("resulting slice should not include method names")
+		}
+		if !IncludesString(fields, "normalField") {
+			t.Error("resulting slice should contain non-private field tags without any modifiers")
+		}
+		if !IncludesString(fields, "normalFieldWithOmitempty") {
+			t.Error(
+				"resulting slice should contain non-private field tags with 'omitempty' modifier",
+			)
+		}
+		if IncludesString(fields, "normalFieldWithOmitempty,omitempty") {
+			t.Error(
+				"the 'omitempty' substring should be removed from the tag string for non-private fields",
+			)
+		}
+		if !IncludesString(fields, "private") {
+			t.Error("resulting slice should contain private field tags or field names")
+		}
+		if !IncludesString(fields, "privateWithOmitempty") {
+			t.Error("resulting slice should contain private field tags with 'omitempty' modifier")
+		}
+		if IncludesString(fields, "privateWithOmitempty,omitempty") {
+			t.Error(
+				"the 'omitempty' substring should be removed from the tag string for private fields",
+			)
+		}
+		if IncludesString(fields, "-") {
+			t.Error("resulting slice should not contain '-' symbol")
+		}
+		if IncludesString(fields, "-,omitempty") {
+			t.Error("resulting slice should not contain '-,omitempty'")
+		}
+		if IncludesString(fields, ",") {
+			t.Error("resulting slice should not contain ',' symbol")
+		}
+		if IncludesString(fields, ",omitempty") {
+			t.Error("resulting slice should not contain ',omitempty'")
+		}
+	}
+
+	// testing with default params: do not skip ignored tags & replace missing tags with field names
+	params := StructKeysJsonParams{true, true}
+	fields, fieldsError = StructFieldsJson(testStructFieldsJson{}, params)
+	basicFunctionalityTests(fields, fieldsError)
+	if len(fields) != 10 {
+		t.Error("invalid resulting slice length")
+	}
+	if !IncludesString(fields, "Ignored") {
+		t.Error("resulting slice should contain ignored field name")
+	}
+	if !IncludesString(fields, "IgonredWithOmitempty") {
+		t.Error("resulting slice should contain ignored field name even if it has 'omitempty'")
+	}
+	if !IncludesString(fields, "Comma") {
+		t.Error("default field name should be used if JSON tag string is ','")
+	}
+	if !IncludesString(fields, "Empty") {
+		t.Error("default field name should be used if JSON tag is an empty string")
+	}
+	if !IncludesString(fields, "EmptyWithOmitempty") {
+		t.Error("default field name should be used if JSON tag string is ',omitempty'")
+	}
+	if !IncludesString(fields, "Missing") {
+		t.Error("default field name should be used if JSON tag is not set")
 	}
 
 	// testing with non-default params: skip ignored tags & replace missing tags with field names
@@ -259,31 +510,83 @@ func TestStructFieldsJson(t *testing.T) {
 		ReplaceMissingTagsWithFieldNames:   true,
 	}
 	fields, fieldsError = StructFieldsJson(testStructFieldsJson{}, params)
-	if fieldsError != nil {
-		t.Error("invalid error when providing correct arguments")
-	}
-	if IncludesString(fields, "Ignored") {
-		t.Error("resulting slice contains field name that should be skipped according to params")
-	}
-	if IncludesString(fields, "IgnoredWithOmitempty") {
-		t.Error("resulting slice contains field name that should be ignored according to params")
-	}
-	if len(fields) != 7 {
+	basicFunctionalityTests(fields, fieldsError)
+	if len(fields) != 8 {
 		t.Error("resulting slice has invalid length")
 	}
-
-	params = StructKeysJsonParams{false, false}
-	fields, fieldsError = StructFieldsJson(testStructFieldsJson{}, params)
-	if fieldsError != nil {
-		t.Error("invalid error when providing correct argument type")
-	}
 	if IncludesString(fields, "Ignored") {
-		t.Error("resulting slice contains field name that should be ignored according to params")
+		t.Error("resulting slice contains field name that should be skipped")
 	}
 	if IncludesString(fields, "IgnoredWithOmitempty") {
-		t.Error("resulting slice contains field name that should be ignored according to params")
+		t.Error("resulting slice contains field name that should be skipped")
+	}
+	if !IncludesString(fields, "Comma") {
+		t.Error("default field name should be used if JSON tag string is ','")
+	}
+	if !IncludesString(fields, "Empty") {
+		t.Error("default field name should be used if JSON tag is an empty string")
+	}
+	if !IncludesString(fields, "EmptyWithOmitempty") {
+		t.Error("default field name should be used if JSON tag string is ',omitempty'")
+	}
+	if !IncludesString(fields, "Missing") {
+		t.Error("default field name should be used if JSON tag is not set")
 	}
 
+	// testing with non-default params: skip ignored tags & skip missing tags
+	params = StructKeysJsonParams{false, false}
+	fields, fieldsError = StructFieldsJson(testStructFieldsJson{}, params)
+	basicFunctionalityTests(fields, fieldsError)
+	if len(fields) != 4 {
+		t.Error("resulting slice has invalid length")
+	}
+	if IncludesString(fields, "Ignored") {
+		t.Error("resulting slice contains field name that should be skipped")
+	}
+	if IncludesString(fields, "IgnoredWithOmitempty") {
+		t.Error("resulting slice contains field name that should be skipped")
+	}
+	if IncludesString(fields, "Comma") {
+		t.Error("resulting slice contains field name that should be skipped")
+	}
+	if IncludesString(fields, "Empty") {
+		t.Error("resulting slice contains field name that should be skipped")
+	}
+	if IncludesString(fields, "EmptyWithOmitempty") {
+		t.Error("resulting slice contains field name that should be skipped")
+	}
+	if IncludesString(fields, "Missing") {
+		t.Error("resulting slice contains field name that should be skipped")
+	}
+
+	// testing with non-default params: do not skip ignored tags & skip missing tags
+	params = StructKeysJsonParams{
+		ReplaceIgnoredFieldsWithFieldNames: true,
+		ReplaceMissingTagsWithFieldNames:   false,
+	}
+	fields, fieldsError = StructFieldsJson(testStructFieldsJson{}, params)
+	basicFunctionalityTests(fields, fieldsError)
+	if len(fields) != 6 {
+		t.Error("invalid resulting slice length")
+	}
+	if !IncludesString(fields, "Ignored") {
+		t.Error("resulting slice should contain ignored field name")
+	}
+	if !IncludesString(fields, "IgonredWithOmitempty") {
+		t.Error("resulting slice should contain ignored field name even if it has 'omitempty'")
+	}
+	if IncludesString(fields, "Comma") {
+		t.Error("resulting slice contains field name that should be skipped")
+	}
+	if IncludesString(fields, "Empty") {
+		t.Error("resulting slice contains field name that should be skipped")
+	}
+	if IncludesString(fields, "EmptyWithOmitempty") {
+		t.Error("resulting slice contains field name that should be skipped")
+	}
+	if IncludesString(fields, "Missing") {
+		t.Error("resulting slice contains field name that should be skipped")
+	}
 }
 
 func TestStructValues(t *testing.T) {
