@@ -27,7 +27,7 @@ func (obj testStructFields) testMethod() string {
 	return obj.Public + obj.private
 }
 
-type testStructFieldsEmbedding struct {
+type testStructFieldsNesting struct {
 	testStructFields
 	A int
 	B string
@@ -50,7 +50,7 @@ func (obj testStructFieldsJson) testMethod() int {
 	return obj.NormalField + obj.private
 }
 
-type testStructFieldsJsonEmbedding struct {
+type testStructFieldsJsonNesting struct {
 	testStructFields
 	A int    `json:"a"`
 	B string `json:"b"`
@@ -132,7 +132,7 @@ func TestObjectKeys(t *testing.T) {
 		t.Error("should not include method names")
 	}
 
-	keys, keysError = ObjectKeys(testStructFieldsEmbedding{})
+	keys, keysError = ObjectKeys(testStructFieldsNesting{})
 	if keysError != nil {
 		t.Error("invalid error when providing correct argument")
 	}
@@ -140,10 +140,10 @@ func TestObjectKeys(t *testing.T) {
 		t.Error("invalid resulting slice length")
 	}
 	if !IncludesString(keys, "testStructFields") {
-		t.Error("resulting slice should contain the name of the embedded struct as an entry")
+		t.Error("resulting slice should contain the name of the nested struct as an entry")
 	}
 	if IncludesString(keys, "Public") || IncludesString(keys, "private") {
-		t.Error("resulting slice should not contain any embedded struct field names")
+		t.Error("resulting slice should not contain any nested struct field names")
 	}
 }
 
@@ -160,19 +160,19 @@ func TestObjectKeysJson(t *testing.T) {
 		t.Error("invalid returned value when providing the wrong argument type")
 	}
 
-	// testing embedding
+	// testing nesting
 	fields, fieldsError = ObjectKeysJson(
-		testStructFieldsJsonEmbedding{},
+		testStructFieldsJsonNesting{},
 		DefaultStructKeysJsonParams,
 	)
 	if fieldsError != nil {
 		t.Error("invalid error when providing correct arguments")
 	}
 	if len(fields) != 3 {
-		t.Error("invalid resulting slice length when using struct with embedding")
+		t.Error("invalid resulting slice length when using struct with nesting")
 	}
 	if IncludesString(fields, "normalField") {
-		t.Error("embedded fields should not be present in the resulting slice")
+		t.Error("nested fields should not be present in the resulting slice")
 	}
 
 	// testing basic functionality regardless of the used params
@@ -224,8 +224,8 @@ func TestObjectKeysJson(t *testing.T) {
 		}
 	}
 
-	// testing with default params: do not skip ignored tags & replace missing tags with field names
-	params := StructKeysJsonParams{true, true}
+	// testing with default params: do not skip ignored fields & replace missing tags with field names
+	params := StructKeysJsonParams{false, false}
 	fields, fieldsError = ObjectKeysJson(testStructFieldsJson{}, params)
 	basicFunctionalityTests(fields, fieldsError)
 	if len(fields) != 10 {
@@ -250,10 +250,10 @@ func TestObjectKeysJson(t *testing.T) {
 		t.Error("default field name should be used if JSON tag is not set")
 	}
 
-	// testing with non-default params: skip ignored tags & replace missing tags with field names
+	// testing with non-default params: skip ignored fields & replace missing tags with field names
 	params = StructKeysJsonParams{
-		ReplaceIgnoredFieldsWithFieldNames: false,
-		ReplaceMissingTagsWithFieldNames:   true,
+		SkipIgnoredFields: true,
+		SkipMissingFields: false,
 	}
 	fields, fieldsError = ObjectKeysJson(testStructFieldsJson{}, params)
 	basicFunctionalityTests(fields, fieldsError)
@@ -279,8 +279,8 @@ func TestObjectKeysJson(t *testing.T) {
 		t.Error("default field name should be used if JSON tag is not set")
 	}
 
-	// testing with non-default params: skip ignored tags & skip missing tags
-	params = StructKeysJsonParams{false, false}
+	// testing with non-default params: skip ignored fields & skip fields with missing tags
+	params = StructKeysJsonParams{true, true}
 	fields, fieldsError = ObjectKeysJson(testStructFieldsJson{}, params)
 	basicFunctionalityTests(fields, fieldsError)
 	if len(fields) != 4 {
@@ -305,10 +305,10 @@ func TestObjectKeysJson(t *testing.T) {
 		t.Error("resulting slice contains field name that should be skipped")
 	}
 
-	// testing with non-default params: do not skip ignored tags & skip missing tags
+	// testing with non-default params: do not skip ignored fields & skip fields with missing tags
 	params = StructKeysJsonParams{
-		ReplaceIgnoredFieldsWithFieldNames: true,
-		ReplaceMissingTagsWithFieldNames:   false,
+		SkipIgnoredFields: false,
+		SkipMissingFields: true,
 	}
 	fields, fieldsError = ObjectKeysJson(testStructFieldsJson{}, params)
 	basicFunctionalityTests(fields, fieldsError)
@@ -423,7 +423,7 @@ func TestStructFields(t *testing.T) {
 		t.Error("should not include method names")
 	}
 
-	fields, fieldsError = StructFields(testStructFieldsEmbedding{})
+	fields, fieldsError = StructFields(testStructFieldsNesting{})
 	if fieldsError != nil {
 		t.Error("invalid error when providing correct argument")
 	}
@@ -431,10 +431,10 @@ func TestStructFields(t *testing.T) {
 		t.Error("invalid resulting slice length")
 	}
 	if !IncludesString(fields, "testStructFields") {
-		t.Error("resulting slice should contain the name of the embedded struct as an entry")
+		t.Error("resulting slice should contain the name of the nested struct as an entry")
 	}
 	if IncludesString(fields, "Public") || IncludesString(fields, "private") {
-		t.Error("resulting slice should not contain any embedded struct field names")
+		t.Error("resulting slice should not contain any nested struct field names")
 	}
 }
 
@@ -451,19 +451,19 @@ func TestStructFieldsJson(t *testing.T) {
 		t.Error("invalid returned value when providing the wrong argument type")
 	}
 
-	// testing embedding
+	// testing nesting
 	fields, fieldsError = StructFieldsJson(
-		testStructFieldsJsonEmbedding{},
+		testStructFieldsJsonNesting{},
 		DefaultStructKeysJsonParams,
 	)
 	if fieldsError != nil {
 		t.Error("invalid error when providing correct arguments")
 	}
 	if len(fields) != 3 {
-		t.Error("invalid resulting slice length when using struct with embedding")
+		t.Error("invalid resulting slice length when using struct with nesting")
 	}
 	if IncludesString(fields, "normalField") {
-		t.Error("embedded fields should not be present in the resulting slice")
+		t.Error("nested fields should not be present in the resulting slice")
 	}
 
 	// testing basic functionality regardless of the used params
@@ -515,8 +515,8 @@ func TestStructFieldsJson(t *testing.T) {
 		}
 	}
 
-	// testing with default params: do not skip ignored tags & replace missing tags with field names
-	params := StructKeysJsonParams{true, true}
+	// testing with default params: do not skip ignored fields & replace missing tags with field names
+	params := StructKeysJsonParams{false, false}
 	fields, fieldsError = StructFieldsJson(testStructFieldsJson{}, params)
 	basicFunctionalityTests(fields, fieldsError)
 	if len(fields) != 10 {
@@ -541,10 +541,10 @@ func TestStructFieldsJson(t *testing.T) {
 		t.Error("default field name should be used if JSON tag is not set")
 	}
 
-	// testing with non-default params: skip ignored tags & replace missing tags with field names
+	// testing with non-default params: skip ignored fields & replace missing tags with field names
 	params = StructKeysJsonParams{
-		ReplaceIgnoredFieldsWithFieldNames: false,
-		ReplaceMissingTagsWithFieldNames:   true,
+		SkipIgnoredFields: true,
+		SkipMissingFields: false,
 	}
 	fields, fieldsError = StructFieldsJson(testStructFieldsJson{}, params)
 	basicFunctionalityTests(fields, fieldsError)
@@ -570,8 +570,8 @@ func TestStructFieldsJson(t *testing.T) {
 		t.Error("default field name should be used if JSON tag is not set")
 	}
 
-	// testing with non-default params: skip ignored tags & skip missing tags
-	params = StructKeysJsonParams{false, false}
+	// testing with non-default params: skip ignored fields & skip fields with missing tags
+	params = StructKeysJsonParams{true, true}
 	fields, fieldsError = StructFieldsJson(testStructFieldsJson{}, params)
 	basicFunctionalityTests(fields, fieldsError)
 	if len(fields) != 4 {
@@ -596,10 +596,10 @@ func TestStructFieldsJson(t *testing.T) {
 		t.Error("resulting slice contains field name that should be skipped")
 	}
 
-	// testing with non-default params: do not skip ignored tags & skip missing tags
+	// testing with non-default params: do not skip ignored fields & skip fields with missing tags
 	params = StructKeysJsonParams{
-		ReplaceIgnoredFieldsWithFieldNames: true,
-		ReplaceMissingTagsWithFieldNames:   false,
+		SkipIgnoredFields: false,
+		SkipMissingFields: true,
 	}
 	fields, fieldsError = StructFieldsJson(testStructFieldsJson{}, params)
 	basicFunctionalityTests(fields, fieldsError)

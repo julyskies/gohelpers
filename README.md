@@ -10,7 +10,7 @@ Minimal required Golang version: **`v1.16`**.
 go get github.com/julyskies/gohelpers
 ```
 
-### Available helper functions
+### Available functions
 
 - **`IncludesInt(slice []int, value int) bool`**
 
@@ -71,29 +71,37 @@ go get github.com/julyskies/gohelpers
 
 - **`StructFields(value interface{}) ([]string, error)`**
 
-  This helper function returns a slice of struct field names (similar to `Object.keys()` in Javascript). Method names are not included. The `value` argument should be a struct. Both public and private struct field names are returned. `ObjectKeys` is an alias for this function.
+  This helper function returns a slice of struct field names (similar to `Object.keys()` in Javascript). Method names are not included. The `value` argument should be a struct. Both public and private struct field names are returned.
+  `ObjectKeys` is an alias for this function.
 
-  Please notice: this function will not return embedded field names (i. e. field names from the embedded structs).
+  Please notice: this function will not return field names for the nested structs.
 
   **Example:**
 
   ```go
-  type SomeStruct struct {
+  type someStruct struct {
     A       int
     B       string
     private bool
     Public  int
   }
-  fields, _ := gohelpers.StructFields(SomeStruct{})
+  fields, _ := gohelpers.StructFields(someStruct{})
   fmt.Println(fields) // [A B private Public]
 
-  // working with embedding is not supported
-  type Embedding struct {
-    SomeStruct
+  // method names are not returned
+  func (s someStruct) myMethod() string {
+    return s.B
+  }
+  fields, _ = gohelpers.StructFields(someStruct{})
+  fmt.Println(fields) // [A B private Public]
+
+  // working with nesting is not supported
+  type withNesting struct {
+    SomeStruct someStruct
     J int
     K string
   }
-  fields, _ = gohelpers.StructFields(Embedding{})
+  fields, _ = gohelpers.StructFields(withNesting{})
   fmt.Println(fields) // [SomeStruct J K]
 
   // handling an error
@@ -106,20 +114,109 @@ go get github.com/julyskies/gohelpers
 
 - **`StructFieldsJson(value interface{}, params gohelpers.StructKeysJsonParams) ([]string, error)`**
 
-  This helper function returns a slice of struct JSON field tags (similar to `Object.keys()` in Javascript). Method names are not included. The `value` argument should be a struct. Both public and private struct JSON field tags are returned.
+  This helper function returns a slice of struct field JSON tags (similar to `Object.keys()` in Javascript). Method names are not included. The `value` argument should be a struct. Both public and private struct field JSON tags are returned.
 
-  A second argument is required for this function, it should be `gohelpers.StructKeysJsonParams` struct, where you can specify the following:
+  `ObjectKeysJson` is an alias for this function.
+
+  Please notice: this function will not return field names for the nested structs.
+
+  This function requires a second argument - `gohelpers.StructKeysJsonParams` struct, where you can specify the following options:
 
   ```go
   type StructKeysJsonParams struct {
-	  ReplaceIgnoredFieldsWithFieldNames bool
-	  ReplaceMissingTagsWithFieldNames   bool
+	  SkipIgnoredFields bool
+	  SkipMissingFields bool
+  }
+  ```
+
+  - `SkipIgnoredFields` field determines if ignored JSON tags should be skipped (i. e. `json:"-"` and `json:"-,omitempty"`). If ignored fields are skipped, resulting slice will not include these struct fields. If they are not skipped, default field name will be included in resulting slice.
+
+  - `SkipMissingFields` field determines if missing or empty JSON tags should be skipped (i. e. if there is no JSON tag for a field, or if JSON tag equals to `json:""`, `json:",omitempty"` or `json:","`). If missing fields are skipped, resulting slice will not include these struct fields. If they are not skipped, default field name will be included in resulting slice.
+
+  Default options for this function available as `gohelpers.DefaultStructKeysJsonParams`:
+
+  ```go
+  // Skip ignored fields: false -> ignored JSON tags will be replaced with default field names.
+  // Skip missing fields: false -> default field names will be used instead of missing JSON tags.
+  var DefaultStructKeysJsonParams = StructKeysJsonParams{
+	  SkipIgnoredFields: false,
+	  SkipMissingFields: false,
+  }
+  ```
+
+  **Example:**
+
+  ```go
+  package main
+
+  import (
+    "fmt"
+
+    "github.com/julyskies/gohelpers"
+  )
+
+  type User struct {
+    Age       uint8  `json:""`
+    FirstName string `json:"firstName"`
+    LastName  string `json:"lastName"`
+    Password  string `json:"-"`
+    role      string
+    Status    string `json:"status,omitempty"`
+  }
+
+  func main() {
+    // get all fields and available JSON tags
+    fields, _ := gohelpers.StructFieldsJson(
+      User{},
+      gohelpers.DefaultStructKeysJsonParams,
+    )
+    fmt.Println(fields) // [Age firstName lastName Password role status]
+
+    // get all non-ignored fields and JSON tags
+    params := gohelpers.StructKeysJsonParams{
+      SkipIgnoredFields: true,
+      SkipMissingFields: false,
+    }
+    fields, _ = gohelpers.StructFieldsJson(User{}, params)
+    fmt.Println(fields) // [Age firstName lastName Role status]
+
+    // get all non-missing fields and JSON tags
+    params = gohelpers.StructKeysJsonParams{
+      SkipIgnoredFields: false,
+      SkipMissingFields: true,
+    }
+    fields, _ = gohelpers.StructFieldsJson(User{}, params)
+    fmt.Println(fields) // [firstName lastName Password status]
+
+    // skip ignored and missing tags
+    params = gohelpers.StructKeysJsonParams{
+      SkipIgnoredFields: true,
+      SkipMissingFields: true,
+    }
+    fields, _ = gohelpers.StructFieldsJson(User{}, params)
+    fmt.Println(fields) // [firstName lastName status]
+
+    // handling an error
+    result, err := gohelpers.StructFieldsJson(
+      "not a struct",
+      gohelpers.StructKeysJsonParams{
+        SkipIgnoredFields: true,
+        SkipMissingFields: true,
+      },
+    )
+    if err != nil {
+      fmt.Println(result)      // []
+      fmt.Println(err.Error()) // provided argument type is not a struct
+    }
   }
   ```
 
 - **`StructValues(value interface{}) []string`**
 
-  This helper function returns an array of values as strings. These values are taken from the provided  `struct`. Behaviour is similar to the `Object.values()` from JS. `ObjectValues` is an alias for this function.
+  This helper function returns a slice of values as strings. These values are taken from the provided  `struct`. This function is similar to `Object.values()` in Javascript. Methods are not returned.
+  `ObjectValues` is an alias for this function.
+
+  Please notice: nested struct values are returned as a single string.
 
   **Example:**
 
@@ -129,15 +226,31 @@ go get github.com/julyskies/gohelpers
     Hippo    string
     Lion     string
   }
-
   animals := animalsStruct{
     Elephant: "elephant",
-    Hippo: "hippo",
-    Lion: "lion",
+    Hippo:    "hippo",
+    Lion:     "lion",
   }
-
   values := gohelpers.StructValues(animals)
-  fmt.Println(values) // ["elephant", "hippo", "lion"]
+  fmt.Println(values) // [elephant, hippo, lion]
+
+  // nested struct
+  type nestedAnimals struct {
+    AnimalsStruct animalsStruct
+    Cat           string
+    Dog           string
+  }
+  moreAnimals := nestedAnimals{
+    AnimalsStruct: animalsStruct{
+      Elephant: "elephant",
+      Hippo:    "hippo",
+      Lion:     "lion",
+    },
+    Cat: "cat",
+    Dog: "dog",
+  }
+  values := gohelpers.StructValues(moreAnimals)
+  fmt.Println(values) // [{elephant hippo lion} cat dog]
   ```
 
 ### Aliases

@@ -116,7 +116,7 @@ func StructFieldsJson(value interface{}, params StructKeysJsonParams) ([]string,
 		jsonTag := reflected.Field(i).Tag.Get("json")
 
 		if jsonTag == "" || jsonTag == "," || jsonTag == ",omitempty" {
-			if params.ReplaceMissingTagsWithFieldNames {
+			if !params.SkipMissingFields {
 				jsonTag = reflected.Field(i).Name
 				keys = append(keys, jsonTag)
 				continue
@@ -126,7 +126,7 @@ func StructFieldsJson(value interface{}, params StructKeysJsonParams) ([]string,
 		}
 
 		if jsonTag == "-" {
-			if params.ReplaceIgnoredFieldsWithFieldNames {
+			if !params.SkipIgnoredFields {
 				jsonTag = reflected.Field(i).Name
 				keys = append(keys, jsonTag)
 				continue
@@ -143,7 +143,7 @@ func StructFieldsJson(value interface{}, params StructKeysJsonParams) ([]string,
 				keys = append(keys, name)
 				continue
 			}
-			if params.ReplaceIgnoredFieldsWithFieldNames {
+			if !params.SkipIgnoredFields {
 				keys = append(keys, reflected.Field(i).Name)
 			} else {
 				continue
