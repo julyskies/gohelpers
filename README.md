@@ -72,6 +72,7 @@ go get github.com/julyskies/gohelpers
 - **`StructFields(value interface{}) ([]string, error)`**
 
   This helper function returns a slice of struct field names (similar to `Object.keys()` in Javascript). Method names are not included. The `value` argument should be a struct. Both public and private struct field names are returned.
+  
   `ObjectKeys` is an alias for this function.
 
   Please notice: this function will not return field names for the nested structs.
@@ -105,10 +106,10 @@ go get github.com/julyskies/gohelpers
   fmt.Println(fields) // [SomeStruct J K]
 
   // handling an error
-  result, err := gohelpers.StructFields("invalid argument type")
+  result, err := gohelpers.StructFields("not a struct")
   if err != nil {
+    fmt.Println(result)      // []
     fmt.Println(err.Error()) // provided argument type is not a struct
-    fmt.Println(result) // nil
   }
   ```
 
@@ -188,7 +189,7 @@ go get github.com/julyskies/gohelpers
     fields, _ = gohelpers.StructFieldsJson(User{}, params)
     fmt.Println(fields) // [firstName lastName Password status]
 
-    // skip ignored and missing tags
+    // skip ignored and missing tags / fields
     params = gohelpers.StructKeysJsonParams{
       SkipIgnoredFields: true,
       SkipMissingFields: true,
@@ -214,6 +215,7 @@ go get github.com/julyskies/gohelpers
 - **`StructValues(value interface{}) []string`**
 
   This helper function returns a slice of values as strings. These values are taken from the provided  `struct`. This function is similar to `Object.values()` in Javascript. Methods are not returned.
+  
   `ObjectValues` is an alias for this function.
 
   Please notice: nested struct values are returned as a single string.
